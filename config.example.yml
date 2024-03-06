@@ -1,0 +1,7 @@
+# Path to paper's sources and builds
+papers_path: papers/
+
+# Telegram service
+telegram:
+  # Secret shared key that used to communicate between services
+  shared_key: telegramsharedkey

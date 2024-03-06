@@ -1,0 +1,6 @@
+target/
+.sqlx/
+.vscode/
+papers/
+*.sqlite
+config.yml

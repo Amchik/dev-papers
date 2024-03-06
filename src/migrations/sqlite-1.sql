@@ -1,0 +1,49 @@
+CREATE TABLE IF NOT EXISTS user (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    ty INTEGER NOT NULL DEFAULT 0,
+    username TEXT NOT NULL UNIQUE,
+    telegram_id INTEGER NOT NULL UNIQUE
+);
+CREATE TABLE IF NOT EXISTS usertoken (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    ty INTEGER NOT NULL DEFAULT 0,
+    user_id INTEGER NOT NULL,
+    scope INTEGER NOT NULL DEFAULT 0,
+    issued_at INTEGER NOT NULL,
+
+    token TEXT NOT NULL,
+
+    FOREIGN KEY(user_id) REFERENCES user(id),
+    UNIQUE(user_id, token)
+);
+
+CREATE TABLE IF NOT EXISTS userinvite (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    user_ty INTEGER NOT NULL DEFAULT 0,
+    reason TEXT NOT NULL,
+
+    invite TEXT NOT NULL UNIQUE,
+
+    issued_at INTEGER NOT NULL,
+    claimed_user_id INTEGER DEFAULT NULL,
+
+    FOREIGN KEY(claimed_user_id) REFERENCES user(id)
+);
+
+CREATE TABLE IF NOT EXISTS project (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    ty INTEGER NOT NULL DEFAULT 0,
+    title TEXT NOT NULL,
+    abstract TEXT,
+    author_id INTEGER NOT NULL,
+
+    FOREIGN KEY(author_id) REFERENCES user(id)
+);
+
+CREATE TABLE IF NOT EXISTS project_source (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    project_id INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+
+    FOREIGN KEY(project_id) REFERENCES project(id)
+);
