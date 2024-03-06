@@ -19,40 +19,51 @@ pub enum Response<T = EmptyErrorData, E: fmt::Display + Serialize = EmptyErrorDa
 }
 pub type EmptyResponse = Response<EmptyErrorData, EmptyErrorData>;
 
-#[derive(Clone, Copy)]
-#[allow(dead_code)]
-pub enum Error {
-    InvalidInput,
-
-    NotFound,
-    Conflict,
-
-    AuthorizationRequired,
-    InvalidToken,
-
-    Obsolete,
+macro_rules! impl_error {
+    ($(#[$a:meta])* $v:vis enum $e:ident { $( $(#[$av:meta])* $var:ident($code:literal) = (StatusCode::$scode:ident, $s:literal) ),+ $(,)? }) => {
+        $(#[$a])*
+        $v enum $e {
+            $( $var = $code ),+
+        }
+        impl $e {
+            #[inline(always)]
+            pub const fn error_name(self) -> &'static str {
+                match self {
+                    $( Self::$var => stringify!($var) ),+
+                }
+            }
+            #[inline(always)]
+            pub const fn message(self) -> &'static str {
+                match self {
+                    $( Self::$var => $s ),+
+                }
+            }
+            #[inline(always)]
+            pub const fn http_code(self) -> StatusCode {
+                match self {
+                    $( Self::$var => StatusCode::$scode ),+
+                }
+            }
+        }
+    };
 }
 
-impl Error {
-    pub const fn message(self) -> &'static str {
-        match self {
-            Error::InvalidInput => "Invalid data in params (query/body)",
-            Error::NotFound => "Object not found",
-            Error::Conflict => "New object conflicts with existing",
-            Error::AuthorizationRequired => "Endpoint requires authorization",
-            Error::InvalidToken => "Invalid authorization token",
-            Error::Obsolete => "API version obsolote",
-        }
-    }
-    pub const fn http_code(self) -> StatusCode {
-        match self {
-            Error::InvalidInput => StatusCode::BAD_REQUEST,
-            Error::NotFound => StatusCode::NOT_FOUND,
-            Error::Conflict => StatusCode::CONFLICT,
-            Error::AuthorizationRequired => StatusCode::UNAUTHORIZED,
-            Error::InvalidToken => StatusCode::UNAUTHORIZED,
-            Error::Obsolete => StatusCode::NOT_FOUND,
-        }
+impl_error! {
+    #[derive(Clone, Copy)]
+    #[allow(dead_code)]
+    #[repr(u32)]
+    pub enum Error {
+        InvalidInput(20_001) = (StatusCode::BAD_REQUEST, "Invalid data in params (query/body)"),
+
+        NotFound(40_001) = (StatusCode::NOT_FOUND, "Object not found"),
+        Conflict(40_002) = (StatusCode::CONFLICT, "New object conflicts with existing"),
+
+        AuthorizationRequired(60_001) = (StatusCode::UNAUTHORIZED, "Endpoint requires authorization"),
+        InvalidToken(60_002) = (StatusCode::UNAUTHORIZED, "Invalid or expired authorization token"),
+        Forbidden(60_003) = (StatusCode::FORBIDDEN, "Not enough rights to access resource"),
+        NoAccess(60_004) = (StatusCode::FORBIDDEN, "Not enough scopes to access resource"),
+
+        Obsolete(70_001) = (StatusCode::NOT_FOUND, "Outdated API version"),
     }
 }
 
@@ -66,7 +77,10 @@ impl<T: Serialize, E: fmt::Display + Serialize> IntoResponse for Response<T, E> 
         #[derive(Serialize)]
         struct FailedResponse {
             ok: bool,
-            error_description: String,
+            error_code: u32,
+            error_name: &'static str,
+            error_description: &'static str,
+            error_message: Option<String>,
         }
 
         match self {
@@ -77,8 +91,11 @@ impl<T: Serialize, E: fmt::Display + Serialize> IntoResponse for Response<T, E> 
             }
             Response::Error(err) => {
                 let mut j = Json(FailedResponse {
-                    ok: true,
-                    error_description: err.message().to_owned(),
+                    ok: false,
+                    error_code: (err as u32),
+                    error_name: err.error_name(),
+                    error_description: err.message(),
+                    error_message: None,
                 })
                 .into_response();
                 *j.status_mut() = err.http_code();
@@ -87,7 +104,10 @@ impl<T: Serialize, E: fmt::Display + Serialize> IntoResponse for Response<T, E> 
             Response::ErrorData(err, msg) => {
                 let mut j = Json(FailedResponse {
                     ok: false,
-                    error_description: format!("{}: {msg}", err.message()),
+                    error_code: (err as u32),
+                    error_name: err.error_name(),
+                    error_description: err.message(),
+                    error_message: Some(format!("{msg}")),
                 })
                 .into_response();
                 *j.status_mut() = err.http_code();

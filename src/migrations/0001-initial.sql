@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS project (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     ty INTEGER NOT NULL DEFAULT 0,
     title TEXT NOT NULL,
-    abstract TEXT,
+    descript TEXT,
     author_id INTEGER NOT NULL,
 
     FOREIGN KEY(author_id) REFERENCES user(id)

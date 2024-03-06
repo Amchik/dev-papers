@@ -50,7 +50,7 @@ enum Subcommands {
 }
 
 async fn apply_migrations(db: &SqlitePool) -> Result<SqliteQueryResult, sqlx::Error> {
-    sqlx::query(concat!(include_str!("migrations/sqlite-1.sql"),))
+    sqlx::query(concat!(include_str!("migrations/0001-initial.sql"),))
         .execute(db)
         .await
 }
