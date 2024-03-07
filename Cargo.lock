@@ -396,12 +396,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
+name = "dp-core"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.4.2",
+ "once_cell",
+ "regex",
+ "serde",
+]
+
+[[package]]
 name = "dp-web-core"
 version = "0.1.0"
 dependencies = [
  "axum",
  "bitflags 2.4.2",
  "clap",
+ "dp-core",
  "once_cell",
  "rand",
  "regex",
@@ -419,6 +430,7 @@ dependencies = [
  "axum",
  "bitflags 2.4.2",
  "clap",
+ "dp-core",
  "dp-web-core",
  "once_cell",
  "rand",

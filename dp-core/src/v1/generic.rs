@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! define_types {
     ($(#[$a:meta])* $v:vis enum $i:ident: $t:ty { $($(#[$av:meta])* $var:ident = $l:literal),+ $(,)? }) => {
         $(#[$a])*
@@ -33,3 +32,5 @@ macro_rules! define_types {
         }
     };
 }
+
+pub(crate) use define_types;

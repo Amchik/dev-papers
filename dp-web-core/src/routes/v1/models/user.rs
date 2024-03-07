@@ -5,98 +5,10 @@ use axum::{
     extract::{FromRequestParts, State},
     http::request::Parts,
 };
-use bitflags::bitflags;
-use clap::{
-    builder::{OsStr, PossibleValue},
-    ValueEnum,
-};
-use once_cell::sync::Lazy;
+use dp_core::v1::user::{User, UserToken, UserTokenScope, UserTokenTy, UserTy};
 use rand::Rng;
-use regex::Regex;
-use serde::Serialize;
 
-use crate::{
-    define_types,
-    routes::{v1::api, AppState},
-};
-
-define_types! {
-    /// Type of user
-    #[derive(Serialize, Copy, Clone, PartialEq, Eq)]
-    pub enum UserTy: i64 {
-        /// User that should confirm registration
-        Unregistered = 0,
-
-        /// User that should be confirmed by moderators
-        Unverified = 1,
-
-        /// Normal user
-        Normal = 2,
-    }
-}
-
-impl ValueEnum for UserTy {
-    fn value_variants<'a>() -> &'a [Self] {
-        Self::ALL_VALUES
-    }
-    fn to_possible_value(&self) -> Option<PossibleValue> {
-        Some(PossibleValue::new(self.as_str()))
-    }
-}
-impl Into<OsStr> for UserTy {
-    fn into(self) -> OsStr {
-        OsStr::from(self.as_str())
-    }
-}
-
-define_types! {
-    /// Type of user token
-    #[derive(Serialize, Copy, Clone, PartialEq, Eq)]
-    pub enum UserTokenTy: i64 {
-        UserLimited = 0,
-        TelegramAuthorization = 1,
-    }
-}
-
-impl UserTokenTy {
-    /// Returns how long token lives in milliseconds.
-    pub const fn lifetime(self) -> i64 {
-        match self {
-            Self::UserLimited => 999999999,
-            Self::TelegramAuthorization => 20 * 60 * 1000,
-        }
-    }
-}
-
-/// Scopes of user token
-#[derive(Serialize)]
-pub struct UserTokenScope(i64);
-
-bitflags! {
-    impl UserTokenScope: i64 {
-        const _ = !0;
-    }
-}
-
-/// User token
-#[derive(Serialize)]
-pub struct UserToken {
-    pub id: i64,
-    pub ty: UserTokenTy,
-    pub user_id: i64,
-    pub scope: UserTokenScope,
-    pub issued_at: i64,
-
-    pub token: String,
-}
-
-#[derive(Serialize)]
-pub struct User {
-    pub id: i64,
-    pub ty: UserTy,
-    pub username: String,
-    pub telegram_id: i64,
-}
+use crate::routes::{v1::api, AppState};
 
 pub struct AuthorizedUser {
     pub user: User,
@@ -187,9 +99,4 @@ pub fn generate_token() -> String {
         .collect();
 
     token
-}
-
-pub fn check_username(v: &str) -> bool {
-    static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"[A-Za-z0-9.]+").unwrap());
-    RE.is_match(v)
 }

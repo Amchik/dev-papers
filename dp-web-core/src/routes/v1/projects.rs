@@ -3,14 +3,12 @@ use axum::{
     routing::{delete, get, put},
     Json, Router,
 };
+use dp_core::v1::project::ProjectTy;
 use serde::{Deserialize, Serialize};
 
 use crate::routes::AppState;
 
-use super::{
-    api,
-    models::{project::ProjectTy, user::AuthorizedUser},
-};
+use super::{api, models::user::AuthorizedUser};
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()

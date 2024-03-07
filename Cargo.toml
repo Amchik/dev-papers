@@ -1,5 +1,5 @@
 [workspace]
-members = ["dp-web-core", "dp-web-server"]
+members = [ "dp-core","dp-web-core", "dp-web-server"]
 
 [profile.release]
 lto = true

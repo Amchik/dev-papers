@@ -5,12 +5,48 @@ use std::{
 };
 
 use axum::Router;
-use clap::{Parser, Subcommand};
+use clap::{
+    builder::{OsStr, PossibleValue},
+    Parser, Subcommand, ValueEnum,
+};
 use dp_web_core::config::Config;
 use dp_web_core::routes::v1::models::user::generate_token;
 use sqlx::SqlitePool;
 
 use dp_web_core::routes::AppState;
+
+#[derive(Clone, Copy)]
+#[repr(transparent)]
+struct UserTy(dp_core::v1::user::UserTy);
+
+impl ValueEnum for UserTy {
+    fn value_variants<'a>() -> &'a [Self] {
+        const N: usize = dp_core::v1::user::UserTy::ALL_VALUES.len();
+        const RES: [UserTy; N] = {
+            let mut v = [UserTy(dp_core::v1::user::UserTy::Unregistered); N];
+            let mut i = 0;
+            while i < N {
+                v[i] = UserTy(dp_core::v1::user::UserTy::ALL_VALUES[i]);
+                i += 1;
+            }
+            v
+        };
+
+        &RES
+
+        // // NOTE: i think it useless trick, better just use Lazy/OnceCell/etc
+        // // SAFETY: Self is transparent, 'static -> 'a is a safe cast.
+        // unsafe { std::mem::transmute(dp_core::v1::user::UserTy::ALL_VALUES) }
+    }
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        Some(PossibleValue::new(self.0.as_str()))
+    }
+}
+impl Into<OsStr> for UserTy {
+    fn into(self) -> OsStr {
+        OsStr::from(self.0.as_str())
+    }
+}
 
 #[derive(Parser)]
 #[command(version, about = "API server for hosting papers", long_about = None, arg_required_else_help = true)]
@@ -41,8 +77,8 @@ enum Subcommands {
         reason: String,
 
         /// Type of user
-        #[arg(long, default_value = dp_web_core::routes::v1::models::user::UserTy::Unregistered)]
-        user_type: dp_web_core::routes::v1::models::user::UserTy,
+        #[arg(long, default_value = UserTy(dp_core::v1::user::UserTy::Unregistered))]
+        user_type: UserTy,
     },
 }
 
@@ -87,7 +123,7 @@ async fn main() {
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as i64;
-            let user_type = user_type as i64;
+            let user_type = user_type.0 as i64;
             let res = sqlx::query!(
                 "insert into userinvite(user_ty,reason,invite,issued_at) values (?,?,?,?)",
                 user_type,

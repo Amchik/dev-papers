@@ -5,17 +5,15 @@ use axum::{
     routing::{post, put},
     Router,
 };
+use dp_core::v1::user::{check_username, User, UserToken, UserTokenTy};
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite};
 
-use crate::routes::{
-    v1::models::user::{check_username, generate_token, UserTokenTy},
-    AppState,
-};
+use crate::routes::{v1::models::user::generate_token, AppState};
 
 use super::{
     api::{self, microservice::MicroserviceAuthorization},
-    models::user::{AuthorizedUser, User, UserToken},
+    models::user::AuthorizedUser,
 };
 
 pub fn get_routes() -> Router<AppState> {

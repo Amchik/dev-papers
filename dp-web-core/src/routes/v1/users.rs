@@ -1,12 +1,10 @@
 use axum::{routing::get, Router};
+use dp_core::v1::user::User;
 use serde::Serialize;
 
 use crate::routes::AppState;
 
-use super::{
-    api,
-    models::user::{AuthorizedUser, User},
-};
+use super::{api, models::user::AuthorizedUser};
 
 pub fn get_routes() -> Router<AppState> {
     Router::new().route("/@self", get(get_self))
