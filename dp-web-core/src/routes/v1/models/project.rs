@@ -1,5 +1,3 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
 use serde::Serialize;
 
 use crate::define_types;

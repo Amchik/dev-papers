@@ -6,14 +6,11 @@ use std::{
 
 use axum::Router;
 use clap::{Parser, Subcommand};
-use config::Config;
-use routes::v1::models::user::generate_token;
-use sqlx::{sqlite::SqliteQueryResult, SqlitePool};
+use dp_web_core::config::Config;
+use dp_web_core::routes::v1::models::user::generate_token;
+use sqlx::SqlitePool;
 
-use crate::routes::AppState;
-
-mod config;
-mod routes;
+use dp_web_core::routes::AppState;
 
 #[derive(Parser)]
 #[command(version, about = "API server for hosting papers", long_about = None, arg_required_else_help = true)]
@@ -44,15 +41,9 @@ enum Subcommands {
         reason: String,
 
         /// Type of user
-        #[arg(long, default_value = routes::v1::models::user::UserTy::Unregistered)]
-        user_type: routes::v1::models::user::UserTy,
+        #[arg(long, default_value = dp_web_core::routes::v1::models::user::UserTy::Unregistered)]
+        user_type: dp_web_core::routes::v1::models::user::UserTy,
     },
-}
-
-async fn apply_migrations(db: &SqlitePool) -> Result<SqliteQueryResult, sqlx::Error> {
-    sqlx::query(concat!(include_str!("migrations/0001-initial.sql"),))
-        .execute(db)
-        .await
 }
 
 #[tokio::main]
@@ -61,7 +52,7 @@ async fn main() {
     let Ok(db) = SqlitePool::connect(&args.database).await else {
         panic!("Failed to connect to database");
     };
-    if let Err(e) = apply_migrations(&db).await {
+    if let Err(e) = dp_web_core::apply_migrations(&db).await {
         panic!("Failed to apply migrations: {e}");
     }
 
@@ -80,7 +71,7 @@ async fn main() {
     match args.subcommand {
         Subcommands::Start { ip } => {
             let app = Router::new()
-                .nest("/v1", routes::v1::get_routes())
+                .nest("/v1", dp_web_core::routes::v1::get_routes())
                 .with_state(AppState {
                     config: Box::leak(Box::new(cfg)),
                     db,

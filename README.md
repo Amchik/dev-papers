@@ -3,26 +3,26 @@
 ## Building
 
 1. Install rust (wow)
-2. Create database and apply all migrations from `src/migrations`:
+2. Create database and apply all migrations from `dp-web-core/src/migrations`:
 ```console
 $ touch papers.sqlite
-$ cat src/migrations/*.sql | sqlite3 papers.sqlite
+$ cat dp-web-core/src/migrations/*.sql | sqlite3 papers.sqlite
 ```
 3. Set `DATABASE_URL` variable and run `cargo build`:
 ```console
 $ DATABASE_URL=sqlite://./papers.sqlite cargo build --release
 ```
 4. Copy `config.example.yml` to `config.yml` and edit it.
-5. Run `target/release/dev-papers`.
+5. Run `target/release/dp-web-server`.
 
 ## Configuration
 
-See `target/release/dev-papers`:
+See `target/release/dp-web-server`:
 
 ```console
 API server for hosting papers
 
-Usage: dev-papers [OPTIONS] <COMMAND>
+Usage: dp-web-server [OPTIONS] <COMMAND>
 
 Commands:
   start          Start the web service
