@@ -3,8 +3,16 @@ use axum::{
     routing::{delete, get, put},
     Json, Router,
 };
-use dp_core::v1::project::ProjectTy;
-use serde::{Deserialize, Serialize};
+use dp_core::v1::{
+    endpoint::{
+        projects::{
+            CreateProject, CreateProjectBody, DeleteProject, ListProjects, ProjectInfo,
+            ProjectListQuery, ProjectPath,
+        },
+        Endpoint,
+    },
+    project::ProjectTy,
+};
 
 use crate::routes::AppState;
 
@@ -12,45 +20,16 @@ use super::{api, models::user::AuthorizedUser};
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
-        .route("/", get(list_projects))
-        .route("/", put(create_project))
-        .route("/:id", delete(delete_project))
-}
-
-#[derive(Deserialize)]
-pub struct CreateProjectBody {
-    pub title: String,
-    #[serde(default)]
-    pub description: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct ProjectInfo {
-    pub id: i64,
-    pub ty: ProjectTy,
-    pub title: String,
-    pub description: Option<String>,
-    pub author_id: i64,
-}
-
-#[derive(Deserialize)]
-pub struct ProjectPath {
-    pub id: i64,
-}
-
-#[derive(Deserialize)]
-pub struct ProjectListQuery {
-    #[serde(default)]
-    pub limit: u32,
-    #[serde(default)]
-    pub skip: u32,
+        .route(ListProjects::partial_path(), get(list_projects))
+        .route(CreateProject::partial_path(), put(create_project))
+        .route(DeleteProject::partial_path(), delete(delete_project))
 }
 
 pub async fn list_projects(
     State(AppState { db, .. }): State<AppState>,
     AuthorizedUser { user, .. }: AuthorizedUser,
-    Query(ProjectListQuery { limit, skip }): Query<ProjectListQuery>,
-) -> api::Response<Vec<ProjectInfo>> {
+    Query(ProjectListQuery { limit, skip }): Query<<ListProjects as Endpoint>::Query>,
+) -> api::Response<<ListProjects as Endpoint>::Response> {
     let limit = match limit {
         0 => 50,
         v @ 1..=50 => v,
@@ -83,8 +62,8 @@ pub async fn list_projects(
 pub async fn create_project(
     State(AppState { db, .. }): State<AppState>,
     AuthorizedUser { user, .. }: AuthorizedUser,
-    Json(CreateProjectBody { title, description }): Json<CreateProjectBody>,
-) -> api::Response<ProjectInfo, &'static str> {
+    Json(CreateProjectBody { title, description }): Json<<CreateProject as Endpoint>::Body>,
+) -> api::Response<<CreateProject as Endpoint>::Response, &'static str> {
     let ty = ProjectTy::Legacy;
     let ity = ty as i64;
 

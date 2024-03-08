@@ -5,8 +5,16 @@ use axum::{
     routing::{post, put},
     Router,
 };
-use dp_core::v1::user::{check_username, User, UserToken, UserTokenTy};
-use serde::{Deserialize, Serialize};
+use dp_core::v1::{
+    endpoint::{
+        auth::{
+            ClaimInviteBody, ClaimInviteTelegram, ClaimInviteUser, IssueUserTokenQuery,
+            IssueUserTokenResponse, TelegramActivateToken, TelegramIssueToken,
+        },
+        Endpoint,
+    },
+    user::{check_username, User, UserToken, UserTokenTy},
+};
 use sqlx::{Pool, Sqlite};
 
 use crate::routes::{v1::models::user::generate_token, AppState};
@@ -18,31 +26,19 @@ use super::{
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
-        .route("/telegram", put(telegram_issue_token))
-        .route("/telegram", post(telegram_activate_token))
-        .route("/invite", post(claim_invite_user))
-        .route("/telegram/invite", post(claim_invite_telegram))
-}
-
-#[derive(Deserialize)]
-pub struct IssueUserTokenQuery {
-    pub telegram_id: i64,
-}
-
-#[derive(Serialize)]
-pub struct IssueUserTokenResponse {
-    pub issued_at: i64,
-    pub expires_in: i64,
-    pub user_id: i64,
-    pub token: String,
-    pub ty: UserTokenTy,
-}
-
-#[derive(Deserialize)]
-pub struct ClaimInviteBody {
-    pub invite: String,
-    pub username: String,
-    pub telegram_id: i64,
+        .route(
+            TelegramIssueToken::partial_path(),
+            put(telegram_issue_token),
+        )
+        .route(
+            TelegramActivateToken::partial_path(),
+            post(telegram_activate_token),
+        )
+        .route(ClaimInviteUser::partial_path(), post(claim_invite_user))
+        .route(
+            ClaimInviteTelegram::partial_path(),
+            post(claim_invite_telegram),
+        )
 }
 
 pub async fn claim_invite(
@@ -132,8 +128,8 @@ pub async fn claim_invite_user(
         invite,
         username,
         telegram_id,
-    }): Json<ClaimInviteBody>,
-) -> api::Response<IssueUserTokenResponse> {
+    }): Json<<ClaimInviteUser as Endpoint>::Body>,
+) -> api::Response<<ClaimInviteUser as Endpoint>::Response> {
     let user_id = match claim_invite(invite, username, telegram_id, &db).await {
         Ok(v) => v,
         Err(e) => return api::Response::Error(e),
@@ -150,7 +146,7 @@ pub async fn claim_invite_telegram(
         username,
         telegram_id,
     }): Json<ClaimInviteBody>,
-) -> api::Response<IssueUserTokenResponse> {
+) -> api::Response<<ClaimInviteTelegram as Endpoint>::Response> {
     if !matches!(ms, MicroserviceAuthorization::Telegram) {
         return api::Response::Error(api::Error::AuthorizationRequired);
     }
@@ -171,7 +167,7 @@ pub async fn telegram_activate_token(
         },
     }: AuthorizedUser,
     State(AppState { db, .. }): State<AppState>,
-) -> api::Response<IssueUserTokenResponse> {
+) -> api::Response<<ClaimInviteUser as Endpoint>::Response> {
     if !matches!(ty, UserTokenTy::TelegramAuthorization) {
         return api::Response::Error(api::Error::AuthorizationRequired);
     }
@@ -186,9 +182,9 @@ pub async fn telegram_activate_token(
 
 pub async fn telegram_issue_token(
     ms: MicroserviceAuthorization,
-    Query(IssueUserTokenQuery { telegram_id }): Query<IssueUserTokenQuery>,
+    Query(IssueUserTokenQuery { telegram_id }): Query<<TelegramIssueToken as Endpoint>::Query>,
     State(AppState { db, .. }): State<AppState>,
-) -> api::Response<IssueUserTokenResponse> {
+) -> api::Response<<TelegramIssueToken as Endpoint>::Response> {
     if !matches!(ms, MicroserviceAuthorization::Telegram) {
         return api::Response::Error(api::Error::AuthorizationRequired);
     }

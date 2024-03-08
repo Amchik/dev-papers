@@ -1,4 +1,5 @@
 use axum::Router;
+use dp_core::v1::endpoint;
 
 use super::AppState;
 
@@ -10,7 +11,7 @@ pub mod users;
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
-        .nest("/auth", auth::get_routes())
-        .nest("/user", users::get_routes())
-        .nest("/projects", projects::get_routes())
+        .nest(endpoint::auth::PREFIX, auth::get_routes())
+        .nest(endpoint::user::PREFIX, users::get_routes())
+        .nest(endpoint::projects::PREFIX, projects::get_routes())
 }
