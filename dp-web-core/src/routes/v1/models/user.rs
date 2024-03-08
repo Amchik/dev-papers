@@ -5,10 +5,13 @@ use axum::{
     extract::{FromRequestParts, State},
     http::request::Parts,
 };
-use dp_core::v1::user::{User, UserToken, UserTokenScope, UserTokenTy, UserTy};
+use dp_core::v1::{
+    api,
+    user::{User, UserToken, UserTokenScope, UserTokenTy, UserTy},
+};
 use rand::Rng;
 
-use crate::routes::{v1::api, AppState};
+use crate::routes::AppState;
 
 pub struct AuthorizedUser {
     pub user: User,

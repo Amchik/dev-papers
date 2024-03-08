@@ -4,6 +4,7 @@ use axum::{
     Json, Router,
 };
 use dp_core::v1::{
+    api,
     endpoint::{
         projects::{
             CreateProject, CreateProjectBody, DeleteProject, ListProjects, ProjectInfo,
@@ -16,7 +17,7 @@ use dp_core::v1::{
 
 use crate::routes::AppState;
 
-use super::{api, models::user::AuthorizedUser};
+use super::models::user::AuthorizedUser;
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()

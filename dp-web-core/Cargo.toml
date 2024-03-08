@@ -16,4 +16,4 @@ serde_yaml = "0.9"
 regex = "1.10"
 once_cell = "1.19"
 
-dp-core = { path = "../dp-core" }
+dp-core = { path = "../dp-core", features = ["axum"] }

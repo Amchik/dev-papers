@@ -1,12 +1,15 @@
 use axum::{routing::get, Router};
-use dp_core::v1::endpoint::{
-    user::{GetSelf, SelfUser},
-    Endpoint,
+use dp_core::v1::{
+    api,
+    endpoint::{
+        user::{GetSelf, SelfUser},
+        Endpoint,
+    },
 };
 
 use crate::routes::AppState;
 
-use super::{api, models::user::AuthorizedUser};
+use super::models::user::AuthorizedUser;
 
 pub fn get_routes() -> Router<AppState> {
     Router::new().route(GetSelf::partial_path(), get(get_self))

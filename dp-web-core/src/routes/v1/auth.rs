@@ -6,6 +6,7 @@ use axum::{
     Router,
 };
 use dp_core::v1::{
+    api,
     endpoint::{
         auth::{
             ClaimInviteBody, ClaimInviteTelegram, ClaimInviteUser, IssueUserTokenQuery,
@@ -19,10 +20,7 @@ use sqlx::{Pool, Sqlite};
 
 use crate::routes::{v1::models::user::generate_token, AppState};
 
-use super::{
-    api::{self, microservice::MicroserviceAuthorization},
-    models::user::AuthorizedUser,
-};
+use super::{api::microservice::MicroserviceAuthorization, models::user::AuthorizedUser};
 
 pub fn get_routes() -> Router<AppState> {
     Router::new()
