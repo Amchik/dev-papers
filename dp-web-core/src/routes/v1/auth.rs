@@ -130,7 +130,7 @@ pub async fn claim_invite_user(
 ) -> api::Response<<ClaimInviteUser as Endpoint>::Response> {
     let user_id = match claim_invite(invite, username, telegram_id, &db).await {
         Ok(v) => v,
-        Err(e) => return api::Response::Error(e),
+        Err(e) => return api::Response::error(e),
     };
 
     api::Response::Success(issue_token(user_id, UserTokenTy::UserLimited, &db).await)
@@ -146,12 +146,12 @@ pub async fn claim_invite_telegram(
     }): Json<ClaimInviteBody>,
 ) -> api::Response<<ClaimInviteTelegram as Endpoint>::Response> {
     if !matches!(ms, MicroserviceAuthorization::Telegram) {
-        return api::Response::Error(api::Error::AuthorizationRequired);
+        return api::Response::error(api::Error::AuthorizationRequired);
     }
 
     let user_id = match claim_invite(invite, username, telegram_id, &db).await {
         Ok(v) => v,
-        Err(e) => return api::Response::Error(e),
+        Err(e) => return api::Response::error(e),
     };
 
     api::Response::Success(issue_token(user_id, UserTokenTy::TelegramAuthorization, &db).await)
@@ -167,7 +167,7 @@ pub async fn telegram_activate_token(
     State(AppState { db, .. }): State<AppState>,
 ) -> api::Response<<ClaimInviteUser as Endpoint>::Response> {
     if !matches!(ty, UserTokenTy::TelegramAuthorization) {
-        return api::Response::Error(api::Error::AuthorizationRequired);
+        return api::Response::error(api::Error::AuthorizationRequired);
     }
 
     sqlx::query!("delete from usertoken where id = ?", token_id)
@@ -184,7 +184,7 @@ pub async fn telegram_issue_token(
     State(AppState { db, .. }): State<AppState>,
 ) -> api::Response<<TelegramIssueToken as Endpoint>::Response> {
     if !matches!(ms, MicroserviceAuthorization::Telegram) {
-        return api::Response::Error(api::Error::AuthorizationRequired);
+        return api::Response::error(api::Error::AuthorizationRequired);
     }
 
     let user_id = sqlx::query!("select id from user where telegram_id = ?;", telegram_id)
@@ -193,7 +193,7 @@ pub async fn telegram_issue_token(
         .map(|v| v.id);
 
     let Ok(user_id) = user_id else {
-        return api::Response::Error(api::Error::NotFound);
+        return api::Response::error(api::Error::NotFound);
     };
 
     api::Response::Success(issue_token(user_id, UserTokenTy::TelegramAuthorization, &db).await)

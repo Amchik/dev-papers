@@ -34,7 +34,7 @@ pub async fn list_projects(
     let limit = match limit {
         0 => 50,
         v @ 1..=50 => v,
-        _ => return api::Response::Error(api::Error::InvalidInput),
+        _ => return api::Response::error(api::Error::InvalidInput),
     };
     let (start, stop) = (limit * skip, limit * skip + limit);
 
@@ -69,7 +69,7 @@ pub async fn create_project(
     let ity = ty as i64;
 
     if !matches!(title.len(), 2..=40) {
-        return api::Response::ErrorData(
+        return api::Response::error_description(
             api::Error::InvalidInput,
             "lenght of `title` should be in range 2..=40",
         );
@@ -94,7 +94,7 @@ pub async fn create_project(
             description,
             author_id: user.id,
         }),
-        Err(_) => api::Response::Error(api::Error::Conflict),
+        Err(_) => api::Response::error(api::Error::Conflict),
     }
 }
 
@@ -114,7 +114,7 @@ pub async fn delete_project(
     .unwrap_or_default();
 
     if res == 0 {
-        api::Response::Error(api::Error::Forbidden)
+        api::Response::error(api::Error::Forbidden)
     } else {
         api::Response::Success(api::EmptyErrorData)
     }

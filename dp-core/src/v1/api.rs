@@ -2,7 +2,7 @@ use std::fmt;
 
 #[cfg(feature = "axum")]
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 pub struct EmptyErrorData;
@@ -13,12 +13,37 @@ impl fmt::Display for EmptyErrorData {
 }
 
 #[allow(dead_code)]
-pub enum Response<T = EmptyErrorData, E: fmt::Display + Serialize = EmptyErrorData> {
+#[derive(Serialize, Deserialize)]
+pub enum Response<T = EmptyErrorData, E = EmptyErrorData> {
+    #[serde(rename = "result")]
     Success(T),
-    Error(Error),
-    ErrorData(Error, E),
+    #[serde(rename = "error")]
+    Error {
+        #[serde(flatten)]
+        error: Error,
+        message: Option<E>,
+    },
 }
 pub type EmptyResponse = Response<EmptyErrorData, EmptyErrorData>;
+
+impl<T, E> Response<T, E> {
+    /// Construct error with empty description
+    #[inline(always)]
+    pub const fn error(error: Error) -> Self {
+        Response::Error {
+            error,
+            message: None,
+        }
+    }
+    /// Construct error with empty description
+    #[inline(always)]
+    pub const fn error_description(error: Error, message: E) -> Self {
+        Response::Error {
+            error,
+            message: Some(message),
+        }
+    }
+}
 
 macro_rules! impl_error {
     ($(#[$a:meta])* $v:vis enum $e:ident { $( $(#[$av:meta])* $var:ident($code:literal) = (StatusCode::$scode:ident, $s:literal) ),+ $(,)? }) => {
@@ -39,6 +64,12 @@ macro_rules! impl_error {
                     $( Self::$var => $s ),+
                 }
             }
+            pub const fn from_code(v: u64) -> Option<Self> {
+                match v {
+                    $( $code => Some(Self::$var) ),+
+                    ,_=>None
+                }
+            }
             #[cfg(feature = "axum")]
             #[inline(always)]
             pub const fn http_code(self) -> StatusCode {
@@ -51,8 +82,9 @@ macro_rules! impl_error {
 }
 
 impl_error! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Serialize, Deserialize)]
     #[allow(dead_code)]
+    #[serde(from = "ser::Error", into = "ser::Error")]
     #[repr(u32)]
     pub enum Error {
         InvalidInput(20_001) = (StatusCode::BAD_REQUEST, "Invalid data in params (query/body)"),
@@ -66,6 +98,33 @@ impl_error! {
         NoAccess(60_004) = (StatusCode::FORBIDDEN, "Not enough scopes to access resource"),
 
         Obsolete(70_001) = (StatusCode::NOT_FOUND, "Outdated API version"),
+    }
+}
+
+mod ser {
+    use std::borrow::Cow;
+
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Clone, Serialize, Deserialize)]
+    pub struct Error<'a> {
+        code: u64,
+        name: Cow<'a, str>,
+        description: Cow<'a, str>,
+    }
+    impl<'a> From<super::Error> for Error<'a> {
+        fn from(value: super::Error) -> Self {
+            Self {
+                code: value as u64,
+                name: value.error_name().into(),
+                description: value.message().into(),
+            }
+        }
+    }
+    impl<'a> From<Error<'a>> for super::Error {
+        fn from(value: Error<'a>) -> Self {
+            Self::from_code(value.code).expect("invalid error code")
+        }
     }
 }
 
@@ -92,28 +151,28 @@ impl<T: Serialize, E: fmt::Display + Serialize> IntoResponse for Response<T, E> 
                 *j.status_mut() = StatusCode::OK;
                 j
             }
-            Response::Error(err) => {
+            // Response::error(err) => {
+            //     let mut j = Json(FailedResponse {
+            //         ok: false,
+            //         error_code: (err as u32),
+            //         error_name: err.error_name(),
+            //         error_description: err.message(),
+            //         error_message: None,
+            //     })
+            //     .into_response();
+            //     *j.status_mut() = err.http_code();
+            //     j
+            // }
+            Response::Error { error, message } => {
                 let mut j = Json(FailedResponse {
                     ok: false,
-                    error_code: (err as u32),
-                    error_name: err.error_name(),
-                    error_description: err.message(),
-                    error_message: None,
+                    error_code: (error as u32),
+                    error_name: error.error_name(),
+                    error_description: error.message(),
+                    error_message: message.map(|v| format!("{v}")),
                 })
                 .into_response();
-                *j.status_mut() = err.http_code();
-                j
-            }
-            Response::ErrorData(err, msg) => {
-                let mut j = Json(FailedResponse {
-                    ok: false,
-                    error_code: (err as u32),
-                    error_name: err.error_name(),
-                    error_description: err.message(),
-                    error_message: Some(format!("{msg}")),
-                })
-                .into_response();
-                *j.status_mut() = err.http_code();
+                *j.status_mut() = error.http_code();
                 j
             }
         }

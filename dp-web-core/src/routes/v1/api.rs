@@ -33,7 +33,7 @@ pub mod microservice {
                 .and_then(|v| v.split_once(' '));
 
             let Some((microservice, token)) = token else {
-                return Err(api::EmptyResponse::Error(api::Error::AuthorizationRequired));
+                return Err(api::EmptyResponse::error(api::Error::AuthorizationRequired));
             };
 
             match microservice {
@@ -47,7 +47,7 @@ pub mod microservice {
                     Ok(Self::Telegram)
                 }
 
-                _ => Err(api::EmptyResponse::Error(api::Error::AuthorizationRequired)),
+                _ => Err(api::EmptyResponse::error(api::Error::AuthorizationRequired)),
             }
         }
     }

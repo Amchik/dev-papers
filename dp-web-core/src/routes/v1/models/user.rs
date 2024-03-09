@@ -39,7 +39,7 @@ impl FromRequestParts<AppState> for AuthorizedUser {
             .map(|(i, t)| (i.parse::<i64>().ok(), t));
 
         let Some((Some(user_id), token)) = token else {
-            return Err(api::EmptyResponse::Error(api::Error::AuthorizationRequired));
+            return Err(api::EmptyResponse::error(api::Error::AuthorizationRequired));
         };
 
         let res = sqlx::query!(
@@ -52,7 +52,7 @@ impl FromRequestParts<AppState> for AuthorizedUser {
         )
         .fetch_one(&db)
         .await
-        .map_err(|_| api::EmptyResponse::Error(api::Error::InvalidToken))?;
+        .map_err(|_| api::EmptyResponse::error(api::Error::InvalidToken))?;
 
         let token_ty = UserTokenTy::from_bits(res.ty);
 
@@ -65,7 +65,7 @@ impl FromRequestParts<AppState> for AuthorizedUser {
             _ = sqlx::query!("delete from usertoken where id = ?", res.id)
                 .execute(&db)
                 .await;
-            return Err(api::EmptyResponse::Error(api::Error::InvalidToken));
+            return Err(api::EmptyResponse::error(api::Error::InvalidToken));
         }
 
         Ok(Self {
